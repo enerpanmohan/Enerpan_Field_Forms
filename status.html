@@ -796,12 +796,27 @@ function submitForm(){
       submitter:submitter, project:project, projnum:projnum,
       emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
     }));
+    // Collect all photos from tasks
+    var photos=[];
+    document.querySelectorAll('#task-body tr').forEach(function(tr,ti){
+      tr.querySelectorAll('img.ph-thumb').forEach(function(img,pi){
+        var b64=img.getAttribute('data-b64')||'';
+        if(b64){
+          var mime=img.getAttribute('data-type')||'image/jpeg';
+          var name=img.getAttribute('data-name')||('task'+(ti+1)+'_photo'+(pi+1)+'.jpg');
+          // Strip data:mime;base64, prefix
+          var raw=b64.split(',')[1]||b64;
+          photos.push({taskIndex:ti+1,name:name,mime:mime,data:raw});
+        }
+      });
+    });
     fetch(SURL, {
       method: 'POST',
       body: JSON.stringify({
         formType:formType, shiftLabel:isS?shift:null, date:date,
         submitter:submitter, project:project, projnum:projnum,
-        emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
+        emails:emailList, subject:subject, note:note, htmlContent:pdfHtml,
+        photos:photos
       }),
       mode: 'no-cors'
     }).then(function(){
@@ -962,7 +977,18 @@ function renum(){document.querySelectorAll('#task-body .tnum').forEach(function(
 function addPhotos(inp,cid){
   var cell=document.getElementById(cid), add=cell.querySelector('.ph-add');
   Array.from(inp.files).forEach(function(f){
-    var r=new FileReader(); r.onload=function(e){var img=document.createElement('img');img.src=e.target.result;img.className='ph-thumb';img.onclick=function(){window.open(e.target.result,'_blank');};cell.insertBefore(img,add);}; r.readAsDataURL(f);
+    var r=new FileReader();
+    r.onload=function(e){
+      var img=document.createElement('img');
+      img.src=e.target.result;
+      img.className='ph-thumb';
+      img.setAttribute('data-b64', e.target.result); // store for Drive upload
+      img.setAttribute('data-name', f.name);
+      img.setAttribute('data-type', f.type||'image/jpeg');
+      img.onclick=function(){window.open(e.target.result,'_blank');};
+      cell.insertBefore(img,add);
+    };
+    r.readAsDataURL(f);
   }); inp.value='';
 }
 

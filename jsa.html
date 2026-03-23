@@ -892,12 +892,27 @@ function submitForm(){
       submitter:submitter, project:project, projnum:projnum,
       emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
     }));
+    // Collect all photos from tasks
+    var photos=[];
+    document.querySelectorAll('#task-body tr').forEach(function(tr,ti){
+      tr.querySelectorAll('img.ph-thumb').forEach(function(img,pi){
+        var b64=img.getAttribute('data-b64')||'';
+        if(b64){
+          var mime=img.getAttribute('data-type')||'image/jpeg';
+          var name=img.getAttribute('data-name')||('task'+(ti+1)+'_photo'+(pi+1)+'.jpg');
+          // Strip data:mime;base64, prefix
+          var raw=b64.split(',')[1]||b64;
+          photos.push({taskIndex:ti+1,name:name,mime:mime,data:raw});
+        }
+      });
+    });
     fetch(SURL, {
       method: 'POST',
       body: JSON.stringify({
         formType:formType, shiftLabel:isS?shift:null, date:date,
         submitter:submitter, project:project, projnum:projnum,
-        emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
+        emails:emailList, subject:subject, note:note, htmlContent:pdfHtml,
+        photos:photos
       }),
       mode: 'no-cors'
     }).then(function(){
