@@ -790,20 +790,26 @@ function submitForm(){
     window._silentPDF=false;
     var pdfHtml=window._lastPdfFull||'';
     toast('Saving to Google Drive...','');
-    fetch(SURL,{method:'POST',body:JSON.stringify({
+    var formData = new FormData();
+    formData.append('payload', JSON.stringify({
       formType:formType, shiftLabel:isS?shift:null, date:date,
       submitter:submitter, project:project, projnum:projnum,
       emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
-    })})
-      .then(function(r){return r.json();})
-      .then(function(res){
-        if(res.success){
-          saveRec(formType,isS?shift:null,date,submitter,project,projnum,res.fileUrl);
-          toast('Saved to Drive & email sent with PDF!','ok');
-        } else {
-          toast('Drive error: '+(res.error||'unknown'),'err');
-        }
-      }).catch(function(){ toast('Could not reach Apps Script. Check your URL.','err'); });
+    }));
+    fetch(SURL, {
+      method: 'POST',
+      body: JSON.stringify({
+        formType:formType, shiftLabel:isS?shift:null, date:date,
+        submitter:submitter, project:project, projnum:projnum,
+        emails:emailList, subject:subject, note:note, htmlContent:pdfHtml
+      }),
+      mode: 'no-cors'
+    }).then(function(){
+      saveRec(formType,isS?shift:null,date,submitter,project,projnum,'');
+      toast('Submitted! Email and Drive save in progress...','ok');
+    }).catch(function(err){
+      toast('Could not reach Apps Script: '+err,'err');
+    });
 
   } else {
     // ── Fallback path: open PDF in new tab + Gmail compose ──
@@ -813,7 +819,7 @@ function submitForm(){
       +'\nProject: '+project+(projnum?' (#'+projnum+')':'')
       +'\nSubmitted by: '+submitter
       +(note?'\n\nNote: '+note:'')
-      +(pdfUrl?'\n\nView PDF: '+pdfUrl:'');
+      +(pdfUrl && pdfUrl.indexOf('blob:')<0 ? '\n\nView PDF: '+pdfUrl : '');
     var toAddr=emailList[0]||'';
     var ccAddrs=emailList.slice(1).map(encodeURIComponent).join(',');
     var gmailUrl='https://mail.google.com/mail/?view=cm&fs=1'
